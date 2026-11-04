@@ -5,17 +5,26 @@ type driver = {
   firstName: string
   lastName: string
   lap: number
-  distanceDriven: number
+  percentageLapComplete: number
+  timeLapStarted: number | null
   topSpeedInMilesPerHour: number
+  positionInRace: number
+  finished: boolean
 }
 
 const raceStartTime = ref<number>()
 const raceDuration = ref<Date | null>()
-const laps = 3
-const lapLengthInMiles = 1
+const laps = 2
+const lapLengthInMiles = 0.5
+const chequeredFlag = ref(false)
 
 const friendlyRaceDuration = computed(() => {
   if (!raceDuration.value) return ""
+
+  const minutes = raceDuration.value
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")
 
   const seconds = raceDuration.value
     .getSeconds()
@@ -27,7 +36,7 @@ const friendlyRaceDuration = computed(() => {
     .toString()
     .padStart(3, "0")
 
-  return `${seconds}:${milliseconds}`
+  return `${minutes}:${seconds}:${milliseconds}`
 })
 
 const drivers = ref<driver[]>([
@@ -35,20 +44,30 @@ const drivers = ref<driver[]>([
     firstName: "Driver",
     lastName: "One",
     lap: 1,
-    distanceDriven: 0,
-    topSpeedInMilesPerHour: 60
+    percentageLapComplete: 0,
+    timeLapStarted: null,
+    topSpeedInMilesPerHour: 60,
+    positionInRace: 1,
+    finished: false
   },
   {
     firstName: "Driver",
     lastName: "Two",
     lap: 1,
-    distanceDriven: 0,
-    topSpeedInMilesPerHour: 55
+    percentageLapComplete: 0,
+    timeLapStarted: null,
+    topSpeedInMilesPerHour: 55,
+    positionInRace: 2,
+    finished: false
   }
 ])
 
 const startRace = () => {
-  raceStartTime.value = Date.now()
+  const now = Date.now()
+  raceStartTime.value = now
+
+  drivers.value.forEach(x => x.timeLapStarted = now)
+
   updateRaceDuration()
 }
 
@@ -63,19 +82,43 @@ const updateRaceDuration = () => {
 }
 
 const updateDriverProgress = () => {
-  if (!raceDuration.value) return
-
-  const durationHours = raceDuration.value.getTime() / (1000 * 60 * 60)
   drivers.value.forEach(driver => {
-    const distance = driver.topSpeedInMilesPerHour * durationHours
-    driver.distanceDriven = distance
+    if (!driver.timeLapStarted) return
+
+    const timeOnThisLap = new Date(Date.now() - driver.timeLapStarted)
+    const timeOnThisLapInHours = timeOnThisLap.getTime() / (1000 * 60 * 60)
+
+    const distanceDrivenThisLap = driver.topSpeedInMilesPerHour * timeOnThisLapInHours
+
+    if (distanceDrivenThisLap > lapLengthInMiles) {
+      driver.lap = driver.lap + 1
+      driver.timeLapStarted = Date.now()
+      driver.percentageLapComplete = 0
+    } else {
+      driver.percentageLapComplete = (distanceDrivenThisLap / lapLengthInMiles) * 100
+    }
   })
 }
 </script>
 
 <template>
   <h1>Driver List</h1>
-  <p v-for="driver in drivers">{{ driver.firstName }} {{ driver.lastName}} {{ driver.distanceDriven }}</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Driver</th>
+        <th>Lap</th>
+        <th>Percentage Lap Completed</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="driver in drivers">
+        <td>{{ driver.firstName }} {{ driver.lastName}}</td>
+        <td>{{ driver.lap }}</td>
+        <td>{{ driver.percentageLapComplete }}</td>
+      </tr>
+    </tbody>
+  </table>
   <button @click="startRace">Start race</button>
   <p v-if="friendlyRaceDuration">Race duration: {{ friendlyRaceDuration }}</p>
 </template>
