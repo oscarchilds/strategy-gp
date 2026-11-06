@@ -15,7 +15,7 @@ type driver = {
 const raceStartTime = ref<number>()
 const raceDuration = ref<Date | null>()
 const laps = 2
-const lapLengthInMiles = 0.5
+const lapLengthInMiles = 0.2
 const chequeredFlag = ref(false)
 
 const friendlyRaceDuration = computed(() => {
@@ -83,7 +83,7 @@ const updateRaceDuration = () => {
 
 const updateDriverProgress = () => {
   drivers.value.forEach(driver => {
-    if (!driver.timeLapStarted) return
+    if (!driver.timeLapStarted || driver.finished) return
 
     const timeOnThisLap = new Date(Date.now() - driver.timeLapStarted)
     const timeOnThisLapInHours = timeOnThisLap.getTime() / (1000 * 60 * 60)
@@ -91,9 +91,17 @@ const updateDriverProgress = () => {
     const distanceDrivenThisLap = driver.topSpeedInMilesPerHour * timeOnThisLapInHours
 
     if (distanceDrivenThisLap > lapLengthInMiles) {
-      driver.lap = driver.lap + 1
-      driver.timeLapStarted = Date.now()
-      driver.percentageLapComplete = 0
+      const onFinalLap = driver.lap == laps
+
+      if (onFinalLap) {
+        chequeredFlag.value = true
+        driver.finished = true
+        driver.percentageLapComplete = 1
+      } else {
+        driver.lap = driver.lap + 1
+        driver.timeLapStarted = Date.now()
+        driver.percentageLapComplete = 0
+      }
     } else {
       driver.percentageLapComplete = (distanceDrivenThisLap / lapLengthInMiles) * 100
     }
@@ -107,15 +115,19 @@ const updateDriverProgress = () => {
     <thead>
       <tr>
         <th>Driver</th>
+        <th>Position</th>
         <th>Lap</th>
         <th>Percentage Lap Completed</th>
+        <th>Finished?</th>
       </tr>
     </thead>
     <tbody>
       <tr v-for="driver in drivers">
-        <td>{{ driver.firstName }} {{ driver.lastName}}</td>
+        <td>{{ driver.firstName }} {{ driver.lastName }}</td>
+        <td>{{ driver.positionInRace }}</td>
         <td>{{ driver.lap }}</td>
         <td>{{ driver.percentageLapComplete }}</td>
+        <td>{{ driver.finished ? "Finished" : "" }}</td>
       </tr>
     </tbody>
   </table>
