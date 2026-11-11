@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 
-type Driver = {
+interface Driver {
   firstName: string
   lastName: string
   lap: number
@@ -9,21 +9,24 @@ type Driver = {
   dateTimeOfLastDistanceCheck: Date | null
   timeLapStarted: number | null // Can we remove this soon?
   currentSpeedInMilesPerHour: number
-  positionInRace: number
-  finished: boolean
+  finishTime: number | null
   percentageFuelRemaining: number
   pitThisLap: boolean
   dateTimeOfPitIn: Date | null
   speedBeforePit: number | null
 }
 
+interface PlayerDriver extends Driver {
+  pitFuelTarget: number
+}
+
 export function useRace() {
   const raceStartTime = ref<number>()
   const raceDuration = ref<Date | null>()
-  const laps = 2
+  const laps = 4
   const lapLengthInMiles = 0.2
   const chequeredFlag = ref(false)
-  const fuelBurnedPerLapInPercent = 75 // at the reference speed
+  const fuelBurnedPerLapInPercent = 40 // at the reference speed
   const referenceSpeedInMilesPerHour = 60
   const fuelBurnSpeedExponent = 1.5 // >1 makes going faster cost more fuel per mile
 
@@ -48,7 +51,7 @@ export function useRace() {
     return `${minutes}:${seconds}:${milliseconds}`
   })
 
-  const playerDriver = ref<Driver>({
+  const playerDriver = ref<PlayerDriver>({
     firstName: 'Driver',
     lastName: 'One',
     lap: 1,
@@ -57,12 +60,12 @@ export function useRace() {
     dateTimeOfLastDistanceCheck: null,
     timeLapStarted: null,
     currentSpeedInMilesPerHour: 60,
-    positionInRace: 1,
-    finished: false,
+    finishTime: null,
     percentageFuelRemaining: 100,
     pitThisLap: false,
     dateTimeOfPitIn: null,
-    speedBeforePit: null
+    speedBeforePit: null,
+    pitFuelTarget: 100
   })
 
   const drivers = ref<Driver[]>([
@@ -76,8 +79,7 @@ export function useRace() {
       dateTimeOfLastDistanceCheck: null,
       timeLapStarted: null,
       currentSpeedInMilesPerHour: 55,
-      positionInRace: 2,
-      finished: false,
+      finishTime: null,
       percentageFuelRemaining: 100,
       pitThisLap: false,
       dateTimeOfPitIn: null,
@@ -85,7 +87,22 @@ export function useRace() {
     }
   ])
 
-  const startRace = () => {
+  const rankedDrivers = computed(() =>
+    [...drivers.value].sort((a, b) => {
+      if (a.finishTime !== null && b.finishTime !== null) return a.finishTime - b.finishTime
+      if (a.finishTime !== null) return -1
+      if (b.finishTime !== null) return 1
+      return b.distanceDrivenInMiles - a.distanceDrivenInMiles
+    })
+  )
+
+  const positionOf = (driver: Driver) => rankedDrivers.value.indexOf(driver) + 1
+
+  const startRace = (playerFirstName: string, playerLastName: string, initialFuel: number) => {
+    playerDriver.value.firstName = playerFirstName
+    playerDriver.value.lastName = playerLastName
+    playerDriver.value.percentageFuelRemaining = initialFuel
+
     const now = Date.now()
     raceStartTime.value = now
 
@@ -101,7 +118,7 @@ export function useRace() {
   const updateRaceDuration = () => {
     if (!raceStartTime.value) return
 
-    if (drivers.value.every(x => x.finished)) return
+    if (drivers.value.every(x => x.finishTime !== null)) return
 
     const duration = new Date(Date.now() - raceStartTime.value)
     raceDuration.value = duration
@@ -112,7 +129,7 @@ export function useRace() {
 
   const updateDriverProgress = () => {
     drivers.value.forEach(driver => {
-      if (!driver.timeLapStarted || !driver.dateTimeOfLastDistanceCheck || driver.finished) return
+      if (!driver.timeLapStarted || !driver.dateTimeOfLastDistanceCheck || driver.finishTime !== null) return
 
       const dateTimeOfThisCheck = new Date(Date.now())
 
@@ -142,12 +159,14 @@ export function useRace() {
 
       if (stillInPits) return
 
-      if (driver.dateTimeOfPitIn !== null) {
+      const exitPits = driver.dateTimeOfPitIn !== null
+
+      if (exitPits) {
         driver.dateTimeOfPitIn = null
         driver.pitThisLap = false
         driver.currentSpeedInMilesPerHour = driver.speedBeforePit ?? driver.currentSpeedInMilesPerHour
         driver.speedBeforePit = null
-        driver.percentageFuelRemaining = 100
+        driver.percentageFuelRemaining = playerDriver.value.pitFuelTarget // TODO allow other drivers to pit
       }
 
       const distanceDrivenOnThisLap = driver.distanceDrivenInMiles - (driver.lap - 1) * lapLengthInMiles
@@ -157,7 +176,7 @@ export function useRace() {
 
         if (onFinalLap) {
           chequeredFlag.value = true
-          driver.finished = true
+          driver.finishTime = dateTimeOfThisCheck.getTime()
           driver.percentageLapComplete = 100
         } else {
           if (driver.pitThisLap)
@@ -181,6 +200,8 @@ export function useRace() {
   return {
     playerDriver,
     drivers,
+    rankedDrivers,
+    positionOf,
     friendlyRaceDuration,
     startRace
   }
