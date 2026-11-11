@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 
 interface Driver {
+  isPlayer: boolean
   firstName: string
   lastName: string
   lap: number
@@ -52,8 +53,9 @@ export function useRace() {
   })
 
   const playerDriver = ref<PlayerDriver>({
-    firstName: 'Driver',
-    lastName: 'One',
+    isPlayer: true,
+    firstName: '',
+    lastName: '',
     lap: 1,
     percentageLapComplete: 0,
     distanceDrivenInMiles: 0,
@@ -71,6 +73,7 @@ export function useRace() {
   const drivers = ref<Driver[]>([
     playerDriver.value,
     {
+      isPlayer: false,
       firstName: 'Driver',
       lastName: 'Two',
       lap: 1,
@@ -162,11 +165,13 @@ export function useRace() {
       const exitPits = driver.dateTimeOfPitIn !== null
 
       if (exitPits) {
+        const newFuel = driver.isPlayer ? playerDriver.value.pitFuelTarget : 100
+
         driver.dateTimeOfPitIn = null
         driver.pitThisLap = false
         driver.currentSpeedInMilesPerHour = driver.speedBeforePit ?? driver.currentSpeedInMilesPerHour
         driver.speedBeforePit = null
-        driver.percentageFuelRemaining = playerDriver.value.pitFuelTarget // TODO allow other drivers to pit
+        driver.percentageFuelRemaining = newFuel
       }
 
       const distanceDrivenOnThisLap = driver.distanceDrivenInMiles - (driver.lap - 1) * lapLengthInMiles
@@ -179,7 +184,9 @@ export function useRace() {
           driver.finishTime = dateTimeOfThisCheck.getTime()
           driver.percentageLapComplete = 100
         } else {
-          if (driver.pitThisLap)
+          const cpuAboutToRunOutOfFuel = !driver.isPlayer && driver.percentageFuelRemaining < 30
+
+          if (driver.pitThisLap || cpuAboutToRunOutOfFuel)
           {
             driver.dateTimeOfPitIn = dateTimeOfThisCheck
             driver.speedBeforePit = driver.currentSpeedInMilesPerHour
