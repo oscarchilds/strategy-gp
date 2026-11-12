@@ -14,7 +14,6 @@ interface Driver {
   percentageFuelRemaining: number
   pitThisLap: boolean
   dateTimeOfPitIn: Date | null
-  speedBeforePit: number | null
 }
 
 interface PlayerDriver extends Driver {
@@ -29,6 +28,9 @@ export function useRace() {
   const chequeredFlag = ref(false)
   const fuelBurnedPerLapInPercent = 40 // at the reference speed
   const referenceSpeedInMilesPerHour = 60
+  const cruisingSpeedInMilesPerHour = 60
+  const limpSpeedInMilesPerHour = 20
+  const limpFuelThresholdInPercent = 5
   const fuelBurnSpeedExponent = 1.5 // >1 makes going faster cost more fuel per mile
 
   const friendlyRaceDuration = computed(() => {
@@ -61,12 +63,11 @@ export function useRace() {
     distanceDrivenInMiles: 0,
     dateTimeOfLastDistanceCheck: null,
     timeLapStarted: null,
-    currentSpeedInMilesPerHour: 60,
+    currentSpeedInMilesPerHour: cruisingSpeedInMilesPerHour,
     finishTime: null,
     percentageFuelRemaining: 100,
     pitThisLap: false,
     dateTimeOfPitIn: null,
-    speedBeforePit: null,
     pitFuelTarget: 100
   })
 
@@ -81,12 +82,11 @@ export function useRace() {
       distanceDrivenInMiles: 0,
       dateTimeOfLastDistanceCheck: null,
       timeLapStarted: null,
-      currentSpeedInMilesPerHour: 55,
+      currentSpeedInMilesPerHour: cruisingSpeedInMilesPerHour,
       finishTime: null,
       percentageFuelRemaining: 100,
       pitThisLap: false,
-      dateTimeOfPitIn: null,
-      speedBeforePit: null
+      dateTimeOfPitIn: null
     }
   ])
 
@@ -130,9 +130,17 @@ export function useRace() {
     setTimeout(updateRaceDuration, 50)
   }
 
+  const speedOf = (driver: Driver) => {
+    if (driver.dateTimeOfPitIn !== null) return 0
+    if (driver.percentageFuelRemaining < limpFuelThresholdInPercent) return limpSpeedInMilesPerHour
+    return cruisingSpeedInMilesPerHour
+  }
+
   const updateDriverProgress = () => {
     drivers.value.forEach(driver => {
       if (!driver.timeLapStarted || !driver.dateTimeOfLastDistanceCheck || driver.finishTime !== null) return
+
+      driver.currentSpeedInMilesPerHour = speedOf(driver)
 
       const dateTimeOfThisCheck = new Date(Date.now())
 
@@ -152,10 +160,6 @@ export function useRace() {
 
       driver.percentageFuelRemaining = Math.max(0, driver.percentageFuelRemaining - fuelBurnedInPercent)
 
-      if (driver.percentageFuelRemaining < 5 && driver.currentSpeedInMilesPerHour > 20) {
-        driver.currentSpeedInMilesPerHour = 20
-      }
-
       const stillInPits =
         driver.dateTimeOfPitIn !== null &&
         dateTimeOfThisCheck.getTime() - driver.dateTimeOfPitIn.getTime() < 10_000
@@ -169,8 +173,6 @@ export function useRace() {
 
         driver.dateTimeOfPitIn = null
         driver.pitThisLap = false
-        driver.currentSpeedInMilesPerHour = driver.speedBeforePit ?? driver.currentSpeedInMilesPerHour
-        driver.speedBeforePit = null
         driver.percentageFuelRemaining = newFuel
       }
 
@@ -189,7 +191,6 @@ export function useRace() {
           if (driver.pitThisLap || cpuAboutToRunOutOfFuel)
           {
             driver.dateTimeOfPitIn = dateTimeOfThisCheck
-            driver.speedBeforePit = driver.currentSpeedInMilesPerHour
             driver.currentSpeedInMilesPerHour = 0
             return
           }

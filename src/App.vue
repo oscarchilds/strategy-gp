@@ -9,7 +9,6 @@ const lastName = ref('')
 const initialFuel = ref(100)
 
 const clickStartRace = () => {
-  console.log('hello')
   startRace(firstName.value, lastName.value, initialFuel.value)
   inRace.value = true
 }
