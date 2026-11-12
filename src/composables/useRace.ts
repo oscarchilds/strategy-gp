@@ -1,27 +1,5 @@
 import { computed, ref } from 'vue'
-
-export type FuelStrategy = 'low' | 'normal' | 'high'
-
-interface Driver {
-  isPlayer: boolean
-  fuelStrategy: FuelStrategy
-  firstName: string
-  lastName: string
-  lap: number
-  percentageLapComplete: number
-  distanceDrivenInMiles: number
-  dateTimeOfLastDistanceCheck: Date | null
-  timeLapStarted: number | null // Can we remove this soon?
-  currentSpeedInMilesPerHour: number
-  finishTime: number | null
-  percentageFuelRemaining: number
-  pitThisLap: boolean
-  dateTimeOfPitIn: Date | null
-}
-
-interface PlayerDriver extends Driver {
-  pitFuelTarget: number
-}
+import type { FuelStrategy, Driver, PlayerDriver } from '../types.ts'
 
 export function useRace() {
   const raceStartTime = ref<number>()

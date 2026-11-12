@@ -1,17 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRace, type FuelStrategy } from './composables/useRace'
+import { useRace } from './composables/useRace'
+import Setup from './components/Setup.vue'
+import type { FuelStrategy } from './types'
 
 const fuelStrategies: FuelStrategy[] = ['low', 'normal', 'high']
 
 const inRace = ref(false)
 
-const firstName = ref('')
-const lastName = ref('')
-const initialFuel = ref(100)
-
-const clickStartRace = () => {
-  startRace(firstName.value, lastName.value, initialFuel.value)
+const clickStartRace = (firstName: string, lastName: string, initialFuel: number) => {
+  startRace(firstName, lastName, initialFuel)
   inRace.value = true
 }
 
@@ -65,12 +63,7 @@ const { playerDriver, rankedDrivers, positionOf, friendlyRaceDuration, startRace
       <button v-else @click="playerDriver.pitThisLap = false">Cancel pit this lap</button>
     </div>
   </div>
-  <div v-else>
-    <input v-model="firstName" type='text'></input>
-    <input v-model="lastName" type='text'></input>
-    <input v-model="initialFuel" type='number'></input>
-    <button @click="clickStartRace">Start race</button>
-  </div>
+  <Setup v-else @startRace="clickStartRace" />
 </template>
 
 <style scoped>
