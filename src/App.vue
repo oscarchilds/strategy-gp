@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRace } from './composables/useRace'
+import { useRace, type FuelStrategy } from './composables/useRace'
+
+const fuelStrategies: FuelStrategy[] = ['low', 'normal', 'high']
 
 const inRace = ref(false)
 
@@ -49,6 +51,15 @@ const { playerDriver, rankedDrivers, positionOf, friendlyRaceDuration, startRace
       <h1>Controls</h1>
       <span>Fuel Target for next Pitstop</span>
       <input type="number" v-model="playerDriver.pitFuelTarget"></input>
+      <div>
+        <span>Fuel burn</span>
+        <button
+          v-for="strategy in fuelStrategies"
+          :key="strategy"
+          :disabled="playerDriver.fuelStrategy === strategy"
+          @click="playerDriver.fuelStrategy = strategy"
+        >{{ strategy }}</button>
+      </div>
       <span v-if="playerDriver.pitThisLap">Pitting this lap</span>
       <button v-if="!playerDriver.pitThisLap" @click="playerDriver.pitThisLap = true">Pit this lap</button>
       <button v-else @click="playerDriver.pitThisLap = false">Cancel pit this lap</button>

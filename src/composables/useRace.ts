@@ -1,7 +1,10 @@
 import { computed, ref } from 'vue'
 
+export type FuelStrategy = 'low' | 'normal' | 'high'
+
 interface Driver {
   isPlayer: boolean
+  fuelStrategy: FuelStrategy
   firstName: string
   lastName: string
   lap: number
@@ -28,7 +31,12 @@ export function useRace() {
   const chequeredFlag = ref(false)
   const fuelBurnedPerLapInPercent = 40 // at the reference speed
   const referenceSpeedInMilesPerHour = 60
-  const cruisingSpeedInMilesPerHour = 60
+  const speedByFuelStrategyInMilesPerHour: Record<FuelStrategy, number> = {
+    low: 45,
+    normal: 60,
+    high: 75
+  }
+  const cruisingSpeedInMilesPerHour = speedByFuelStrategyInMilesPerHour.normal
   const limpSpeedInMilesPerHour = 20
   const limpFuelThresholdInPercent = 5
   const fuelBurnSpeedExponent = 1.5 // >1 makes going faster cost more fuel per mile
@@ -56,6 +64,7 @@ export function useRace() {
 
   const playerDriver = ref<PlayerDriver>({
     isPlayer: true,
+    fuelStrategy: 'normal',
     firstName: '',
     lastName: '',
     lap: 1,
@@ -75,6 +84,7 @@ export function useRace() {
     playerDriver.value,
     {
       isPlayer: false,
+      fuelStrategy: 'normal',
       firstName: 'Driver',
       lastName: 'Two',
       lap: 1,
@@ -133,7 +143,7 @@ export function useRace() {
   const speedOf = (driver: Driver) => {
     if (driver.dateTimeOfPitIn !== null) return 0
     if (driver.percentageFuelRemaining < limpFuelThresholdInPercent) return limpSpeedInMilesPerHour
-    return cruisingSpeedInMilesPerHour
+    return speedByFuelStrategyInMilesPerHour[driver.fuelStrategy]
   }
 
   const updateDriverProgress = () => {
