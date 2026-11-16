@@ -6,6 +6,7 @@ export function useRace() {
   const raceDuration = ref<Date | null>()
   const laps = 4
   const lapLengthInMiles = 0.2
+  const gridSpacingInMiles = 0.005
   const chequeredFlag = ref(false)
   const fuelBurnedPerLapInPercent = 40 // at the reference speed
   const referenceSpeedInMilesPerHour = 60
@@ -59,7 +60,6 @@ export function useRace() {
   })
 
   const drivers = ref<Driver[]>([
-    playerDriver.value,
     {
       isPlayer: false,
       fuelStrategy: 'normal',
@@ -75,7 +75,8 @@ export function useRace() {
       percentageFuelRemaining: 100,
       pitThisLap: false,
       dateTimeOfPitIn: null
-    }
+    },
+    playerDriver.value
   ])
 
   const rankedDrivers = computed(() =>
@@ -97,8 +98,9 @@ export function useRace() {
     const now = Date.now()
     raceStartTime.value = now
 
-    drivers.value.forEach(driver =>
+    drivers.value.forEach((driver, slot) =>
     {
+      driver.distanceDrivenInMiles = -slot * gridSpacingInMiles
       driver.timeLapStarted = now
       driver.dateTimeOfLastDistanceCheck = new Date(now)
     })
@@ -188,7 +190,7 @@ export function useRace() {
           driver.percentageLapComplete = 0
         }
       } else {
-        driver.percentageLapComplete = (distanceDrivenOnThisLap / lapLengthInMiles) * 100
+        driver.percentageLapComplete = Math.max(0, (distanceDrivenOnThisLap / lapLengthInMiles) * 100)
       }
     })
   }
