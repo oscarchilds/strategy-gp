@@ -1,5 +1,17 @@
 export type FuelStrategy = 'low' | 'normal' | 'high'
 
+interface Corner {
+  startInMiles: number
+  lengthInMiles: number
+  direction: 'left' | 'right'
+}
+
+export interface Circuit {
+  name: string
+  lapLengthInMiles: number
+  corners: Corner[]
+}
+
 export interface Driver {
   isPlayer: boolean
   fuelStrategy: FuelStrategy

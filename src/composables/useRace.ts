@@ -1,16 +1,17 @@
 import { computed, ref } from 'vue'
+import { squareCircuit } from '@/circuits.ts'
 import type { FuelStrategy, Driver, PlayerDriver } from '../types.ts'
 
 export function useRace() {
   const raceStartTime = ref<number>()
   const raceDuration = ref<Date | null>()
   const laps = 4
-  const lapLengthInMiles = 0.2
+  const lapLengthInMiles = squareCircuit.lapLengthInMiles
   const gridSpacingInMiles = 0.005
   const countdownSeconds = 3
   const countdown = ref<number | null>(null)
   const chequeredFlag = ref(false)
-  const fuelBurnedPerLapInPercent = 40 // at the reference speed
+  const fuelBurnedPerLapInPercent = 30 // at the reference speed
   const referenceSpeedInMilesPerHour = 60
   const speedByFuelStrategyInMilesPerHour: Record<FuelStrategy, number> = {
     low: 45,
@@ -91,6 +92,10 @@ export function useRace() {
   )
 
   const positionOf = (driver: Driver) => rankedDrivers.value.indexOf(driver) + 1
+
+  const lapDistanceOf = (driver: Driver) => ((driver.distanceDrivenInMiles % lapLengthInMiles) + lapLengthInMiles) % lapLengthInMiles
+
+  const lapNumberAt = (distanceInMiles: number) => Math.max(1, Math.floor(distanceInMiles / lapLengthInMiles) + 1)
 
   const startRace = (playerFirstName: string, playerLastName: string, initialFuel: number) => {
     playerDriver.value.firstName = playerFirstName
@@ -192,9 +197,7 @@ export function useRace() {
         driver.percentageFuelRemaining = newFuel
       }
 
-      const distanceDrivenOnThisLap = driver.distanceDrivenInMiles - (driver.lap - 1) * lapLengthInMiles
-
-      if (distanceDrivenOnThisLap > lapLengthInMiles) {
+      if (lapNumberAt(driver.distanceDrivenInMiles) > driver.lap) {
         const onFinalLap = driver.lap == laps
 
         if (onFinalLap) {
@@ -216,7 +219,9 @@ export function useRace() {
           driver.percentageLapComplete = 0
         }
       } else {
-        driver.percentageLapComplete = Math.max(0, (distanceDrivenOnThisLap / lapLengthInMiles) * 100)
+        driver.percentageLapComplete = driver.distanceDrivenInMiles < 0
+          ? 0
+          : (lapDistanceOf(driver) / lapLengthInMiles) * 100
       }
     })
   }

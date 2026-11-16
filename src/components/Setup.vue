@@ -17,7 +17,7 @@ const clickStartRace = () => {
 <template>
   <h1>Race setup</h1>
   <p>Laps: 4</p>
-  <p>Fuel burn per lap: ~40%</p>
+  <p>Fuel burn per lap: ~30%</p>
   <p>Driver First Name</p>
   <input v-model="firstName" type='text'></input>
   <p>Driver Last Name</p>
