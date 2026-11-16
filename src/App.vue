@@ -13,11 +13,12 @@ const clickStartRace = (firstName: string, lastName: string, initialFuel: number
   inRace.value = true
 }
 
-const { playerDriver, rankedDrivers, positionOf, friendlyRaceDuration, startRace } = useRace()
+const { playerDriver, rankedDrivers, positionOf, friendlyRaceDuration, countdown, startRace } = useRace()
 </script>
 
 <template>
   <div v-if="inRace">
+    <h1 v-if="countdown !== null">{{ countdown }}</h1>
     <table>
       <thead>
         <tr>
@@ -44,8 +45,8 @@ const { playerDriver, rankedDrivers, positionOf, friendlyRaceDuration, startRace
         </tr>
       </tbody>
     </table>
-    <div v-if="friendlyRaceDuration">
-      <p v-if="friendlyRaceDuration">Race duration: {{ friendlyRaceDuration }}</p>
+    <div>
+      <p>Race duration: {{ friendlyRaceDuration }}</p>
       <h1>Controls</h1>
       <span>Fuel Target for next Pitstop</span>
       <input type="number" v-model="playerDriver.pitFuelTarget"></input>

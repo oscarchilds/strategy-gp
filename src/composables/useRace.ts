@@ -7,6 +7,8 @@ export function useRace() {
   const laps = 4
   const lapLengthInMiles = 0.2
   const gridSpacingInMiles = 0.005
+  const countdownSeconds = 3
+  const countdown = ref<number | null>(null)
   const chequeredFlag = ref(false)
   const fuelBurnedPerLapInPercent = 40 // at the reference speed
   const referenceSpeedInMilesPerHour = 60
@@ -95,12 +97,36 @@ export function useRace() {
     playerDriver.value.lastName = playerLastName
     playerDriver.value.percentageFuelRemaining = initialFuel
 
-    const now = Date.now()
-    raceStartTime.value = now
-
     drivers.value.forEach((driver, slot) =>
     {
       driver.distanceDrivenInMiles = -slot * gridSpacingInMiles
+    })
+
+    countdown.value = countdownSeconds
+    tickCountdown()
+  }
+
+  const tickCountdown = () => {
+    if (countdown.value === null) return
+
+    if (countdown.value === 0) {
+      countdown.value = null
+      lightsOut()
+      return
+    }
+
+    setTimeout(() => {
+      countdown.value = countdown.value! - 1
+      tickCountdown()
+    }, 1000)
+  }
+
+  const lightsOut = () => {
+    const now = Date.now()
+    raceStartTime.value = now
+
+    drivers.value.forEach(driver =>
+    {
       driver.timeLapStarted = now
       driver.dateTimeOfLastDistanceCheck = new Date(now)
     })
@@ -201,6 +227,7 @@ export function useRace() {
     rankedDrivers,
     positionOf,
     friendlyRaceDuration,
+    countdown,
     startRace
   }
 }
